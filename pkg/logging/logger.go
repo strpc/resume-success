@@ -11,8 +11,18 @@ type LogType string
 var jsonType LogType = "json"
 var plainType LogType = "plain"
 
+var e *logrus.Entry
+
 type Logger struct {
 	*logrus.Entry
+}
+
+func GetLogger() *Logger {
+	return &Logger{e}
+}
+
+func (l *Logger) IsDebug() bool {
+	return l.Logger.Level == logrus.DebugLevel
 }
 
 func NewLogger(logLevel string, logType LogType) *Logger {
@@ -41,8 +51,6 @@ func NewLogger(logLevel string, logType LogType) *Logger {
 	if l == logrus.DebugLevel {
 		logger.SetReportCaller(true)
 	}
-	e := logrus.NewEntry(logger)
-	return &Logger{
-		e,
-	}
+	e = logrus.NewEntry(logger)
+	return &Logger{e}
 }

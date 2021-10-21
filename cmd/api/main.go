@@ -2,18 +2,16 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/strpc/resume-success/internal/users/auth"
-
 	"github.com/gorilla/mux"
 	cfg "github.com/strpc/resume-success/internal/config"
 	"github.com/strpc/resume-success/internal/rest"
 	"github.com/strpc/resume-success/internal/rest/middleware"
+	"github.com/strpc/resume-success/internal/users/auth"
 	"github.com/strpc/resume-success/pkg/clients/postgres"
 	"github.com/strpc/resume-success/pkg/logging"
 )
@@ -28,7 +26,6 @@ func main() {
 
 	psqlConfig := config.DB.Postgres
 	psqlClient, err := postgres.NewClient(
-		logger,
 		psqlConfig.Host,
 		psqlConfig.User,
 		psqlConfig.Password,
@@ -37,8 +34,16 @@ func main() {
 		psqlConfig.Port,
 	)
 	if err != nil {
-		logger.Fatalf("Postgresql connection error. %s", err.Error())
+		logger.Fatalf("PostgreSQL connection error. %s", err.Error())
 	}
+	defer func() {
+		logger.Info("Closing PostgreSQL connection...")
+		if err := psqlClient.Close(); err != nil {
+			logger.Fatalf("Error closing PostgreSQL connection. Error: %s", err.Error())
+		}
+		logger.Info("PostgreSQL connection closed.")
+	}()
+
 	userRepo := auth.NewPostgresRepository(logger, psqlClient)
 	userService := auth.NewService(logger, userRepo)
 
@@ -49,7 +54,7 @@ func main() {
 	server := rest.NewServer(logger, config.App.Port, router)
 
 	go func() {
-		if err := server.Start(); err != nil && err != http.ErrServerClosed {
+		if err := server.Start(); err != nil {
 			logger.Fatalf("error occured while running http server: %s", err.Error())
 		}
 	}()
