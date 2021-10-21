@@ -14,6 +14,16 @@ type Config struct {
 		LogLevel string          `env:"LOG_LEVEL"`
 		LogType  logging.LogType `env:"LOG_TYPE"`
 	}
+	DB struct {
+		Postgres struct {
+			Host     string `env:"POSTGRES_HOST"`
+			Port     int    `env:"POSTGRES_PORT"`
+			User     string `env:"POSTGRES_USER"`
+			Password string `env:"POSTGRES_PASSWORD"`
+			DBName   string `env:"POSTGRES_DB"`
+			SSLMode  string `env:"POSTGRES_SSL_MODE"`
+		}
+	}
 }
 
 func GetConfig() *Config {

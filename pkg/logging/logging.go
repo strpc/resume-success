@@ -36,9 +36,11 @@ func NewLogger(logLevel string, logType LogType) *Logger {
 	}
 
 	logger := logrus.New()
-	logger.SetReportCaller(true)
 	logger.SetFormatter(formatter)
 	logger.SetLevel(l)
+	if l == logrus.DebugLevel {
+		logger.SetReportCaller(true)
+	}
 	e := logrus.NewEntry(logger)
 	return &Logger{
 		e,

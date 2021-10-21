@@ -2,11 +2,11 @@ package rest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/strpc/resume-success/pkg/logging"
 
 	"github.com/gorilla/mux"
 )
@@ -17,19 +17,12 @@ type Handler interface {
 
 type Server struct {
 	server http.Server
+	logger *logging.Logger
+	router *mux.Router
 }
 
-func NewServer(port int, router *mux.Router) *Server {
-	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		jsonResp, err := json.Marshal(map[string]bool{"pong": true})
-		if err != nil {
-			log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-		}
-		_, _ = w.Write(jsonResp)
-	})
-	return &Server{
+func NewServer(logger *logging.Logger, port int, router *mux.Router) *Server {
+	server := &Server{
 		server: http.Server{
 			Addr:         fmt.Sprintf("0.0.0.0:%d", port),
 			Handler:      router,
@@ -37,7 +30,17 @@ func NewServer(port int, router *mux.Router) *Server {
 			ReadTimeout:  time.Second * 15,
 			IdleTimeout:  time.Second * 60,
 		},
+		logger: logger,
+		router: router,
 	}
+	server.initHealthCheckRoute()
+	return server
+}
+
+func (s *Server) initHealthCheckRoute() {
+	s.router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods("GET")
 }
 
 func (s *Server) Start() error {
