@@ -1,19 +1,24 @@
 package auth
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"github.com/strpc/resume-success/internal/rest"
 
 	"github.com/gorilla/mux"
 	"github.com/strpc/resume-success/pkg/logging"
 )
 
 type Handler struct {
+	server  *rest.Server
 	logger  *logging.Logger
 	service *Service
 }
 
-func NewHandler(logger *logging.Logger, service *Service) *Handler {
+func NewHandler(logger *logging.Logger, service *Service, server *rest.Server) *Handler {
 	return &Handler{
+		server:  server,
 		logger:  logger,
 		service: service,
 	}
@@ -28,9 +33,28 @@ func (h *Handler) Register(r *mux.Router) {
 }
 
 func (h *Handler) register() http.HandlerFunc {
+	type RequestBody struct {
+		Email    string `validate:"required,email"`
+		Password string `validate:"required,gte=8"`
+	}
+	var b RequestBody
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		h.logger.Info("Fish for register method. haha")
+		if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+			h.server.ErrorResponse(w, r, http.StatusBadRequest, err)
+			return
+		}
+		if err := h.server.ValidateStruct(b); err != nil {
+			h.server.ErrorResponse(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		user, err := h.service.RegisterUser(b.Email, b.Password)
+		if err != nil {
+			h.server.ErrorResponse(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		h.server.Response(w, r, http.StatusCreated, user)
 	}
 }
 

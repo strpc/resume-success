@@ -3,6 +3,7 @@ module github.com/strpc/resume-success
 go 1.16
 
 require (
+	github.com/go-playground/validator/v10 v10.9.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/ilyakaznacheev/cleanenv v1.2.5 // indirect
 	github.com/jackc/pgx v3.6.2+incompatible // indirect
