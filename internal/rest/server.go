@@ -2,13 +2,16 @@ package rest
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/strpc/resume-success/pkg/logging"
-
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+
+	"github.com/strpc/resume-success/pkg/logging"
 )
 
 type Handler interface {
@@ -52,4 +55,35 @@ func (s *Server) Start() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
+}
+
+var validate *validator.Validate
+
+func (s *Server) ValidateStruct(e interface{}) error {
+	if e == nil {
+		return errors.New("clean interface for validate")
+	}
+	validate = validator.New()
+	err := validate.Struct(e)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) ErrorResponse(w http.ResponseWriter, r *http.Request, code int, err error) {
+	if err == nil {
+		err = errors.New("unknown error")
+	}
+	s.Response(w, r, code, map[string]string{"error": err.Error()})
+}
+
+func (s *Server) Response(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
+	w.WriteHeader(code)
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			s.logger.Errorf("error response encode body %#v", data)
+			s.ErrorResponse(w, r, http.StatusInternalServerError, err)
+		}
+	}
 }
