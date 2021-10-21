@@ -44,7 +44,10 @@ func (s *Server) initHealthCheckRoute() {
 }
 
 func (s *Server) Start() error {
-	return s.server.ListenAndServe()
+	if err := s.server.ListenAndServe(); err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {

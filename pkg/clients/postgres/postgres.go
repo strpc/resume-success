@@ -10,11 +10,11 @@ import (
 )
 
 type Client struct {
-	logger *logging.Logger
-	db     *sqlx.DB
+	*sqlx.DB
 }
 
-func NewClient(logger *logging.Logger, host, user, password, dbName, SSLMode string, port int) (*Client, error) {
+func NewClient(host, user, password, dbName, SSLMode string, port int) (*Client, error) {
+	logger := logging.GetLogger()
 	uriDb := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", user, password, host, port, dbName, SSLMode)
 	db, err := sqlx.Connect("pgx", uriDb)
 	if err != nil {
@@ -24,8 +24,12 @@ func NewClient(logger *logging.Logger, host, user, password, dbName, SSLMode str
 		return nil, err
 	}
 	logger.Infof("Postgresql is connected to %s:%d", host, port)
+
+	if logger.IsDebug() {
+		logger.Debugf("%+v", db.Stats())
+	}
+
 	return &Client{
-		logger: logger,
-		db:     db,
+		db,
 	}, nil
 }

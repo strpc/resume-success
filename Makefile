@@ -14,7 +14,7 @@ run:
 	go run $(MAIN_GO)
 
 build:
-	go build $(MAIN_GO)
+	go build -o cmd/api/api $(MAIN_GO)
 
 up:
 	docker-compose up -d
