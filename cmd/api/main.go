@@ -7,11 +7,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/strpc/resume-success/internal/users/auth"
+
 	"github.com/gorilla/mux"
 	cfg "github.com/strpc/resume-success/internal/config"
 	"github.com/strpc/resume-success/internal/rest"
 	"github.com/strpc/resume-success/internal/rest/middleware"
-	"github.com/strpc/resume-success/internal/users/auth"
 	"github.com/strpc/resume-success/pkg/clients/postgres"
 	"github.com/strpc/resume-success/pkg/logging"
 )
@@ -24,14 +25,13 @@ func main() {
 	loggingMiddleware := middleware.NewLoggingMiddleware(logger)
 	router.Use(loggingMiddleware.Middleware)
 
-	psqlConfig := config.DB.Postgres
 	psqlClient, err := postgres.NewClient(
-		psqlConfig.Host,
-		psqlConfig.User,
-		psqlConfig.Password,
-		psqlConfig.DBName,
-		psqlConfig.SSLMode,
-		psqlConfig.Port,
+		config.DB.Postgres.Host,
+		config.DB.Postgres.User,
+		config.DB.Postgres.Password,
+		config.DB.Postgres.DBName,
+		config.DB.Postgres.SSLMode,
+		config.DB.Postgres.Port,
 	)
 	if err != nil {
 		logger.Fatalf("PostgreSQL connection error. %s", err.Error())
@@ -44,14 +44,13 @@ func main() {
 		logger.Info("PostgreSQL connection closed.")
 	}()
 
-	userRepo := auth.NewPostgresRepository(logger, psqlClient)
-	userService := auth.NewService(logger, userRepo)
+	var server *rest.Server
 
-	authHandler := auth.NewHandler(logger, userService)
+	authHandler := getAuthHandler(psqlClient, logger, server)
 	authRouter := router.PathPrefix("/auth").Subrouter()
 	authHandler.Register(authRouter)
 
-	server := rest.NewServer(logger, config.App.Port, router)
+	server = rest.NewServer(logger, config.App.Port, router)
 
 	go func() {
 		if err := server.Start(); err != nil {
@@ -68,11 +67,16 @@ func main() {
 	logger.Info("Server Shutting Down...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
-	}()
+	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Fatalf("error occured on server shutting down: %s", err)
 	}
+}
+
+func getAuthHandler(pgClient *postgres.Client, logger *logging.Logger, server *rest.Server) *auth.Handler {
+	authRepo := auth.NewPostgresRepository(logger, pgClient)
+	authService := auth.NewService(logger, authRepo)
+	authHandler := auth.NewHandler(logger, authService, server)
+	return authHandler
 }
