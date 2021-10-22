@@ -33,23 +33,26 @@ func (h *Handler) Register(r *mux.Router) {
 }
 
 func (h *Handler) register() http.HandlerFunc {
-	type RequestBody struct {
+	type request struct {
 		Email    string `validate:"required,email"`
 		Password string `validate:"required,gte=8"`
 	}
-	var b RequestBody
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			h.server.ErrorResponse(w, r, http.StatusBadRequest, err)
 			return
 		}
-		if err := h.server.ValidateStruct(b); err != nil {
+		if err := h.server.ValidateStruct(req); err != nil {
 			h.server.ErrorResponse(w, r, http.StatusBadRequest, err)
 			return
 		}
-
-		user, err := h.service.RegisterUser(b.Email, b.Password)
+		u := &User{
+			Email:    req.Email,
+			Password: req.Password,
+		}
+		user, err := h.service.RegisterUser(u)
 		if err != nil {
 			h.server.ErrorResponse(w, r, http.StatusInternalServerError, err)
 			return

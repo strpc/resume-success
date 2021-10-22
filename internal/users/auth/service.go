@@ -27,8 +27,8 @@ func encryptString(s string) (string, error) {
 	return string(b), nil
 }
 
-func (s *Service) RegisterUser(email, password string) (User, error) {
-	e, _ := encryptString(password)
+func (s *Service) RegisterUser(u *User) (User, error) {
+	e, _ := encryptString(u.Password)
 	fmt.Println(e)
 	return User{}, nil
 }
