@@ -25,12 +25,12 @@ func encryptPassword(s string) (string, error) {
 	return string(b), nil
 }
 
-func decryptPassword(hash, password string) bool {
+func decryptPassword(hash, password string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	if err != nil {
-		return false
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
 func (s *Service) RegisterUser(u *User) (*User, error) {
