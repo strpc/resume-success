@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/strpc/resume-success/internal/rest"
@@ -53,8 +54,9 @@ func (h *Handler) register() http.HandlerFunc {
 			Password: req.Password,
 		}
 		user, err := h.service.RegisterUser(u)
+		h.logger.Printf("%#v", user)
 		if err != nil {
-			h.server.ErrorResponse(w, r, http.StatusInternalServerError, err)
+			h.server.ErrorResponse(w, r, http.StatusInternalServerError, errors.New("internal error"))
 			return
 		}
 		h.server.Response(w, r, http.StatusCreated, user)

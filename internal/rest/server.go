@@ -14,10 +14,6 @@ import (
 	"github.com/strpc/resume-success/pkg/logging"
 )
 
-type Handler interface {
-	Register(router *mux.Router)
-}
-
 type Server struct {
 	server http.Server
 	logger *logging.Logger

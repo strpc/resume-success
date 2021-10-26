@@ -6,7 +6,7 @@ import (
 )
 
 type Repository interface {
-	Create() error
+	CreateUser(u *User) (int64, error)
 }
 
 type PostgresRepository struct {
@@ -14,16 +14,20 @@ type PostgresRepository struct {
 	logger *logging.Logger
 }
 
-func NewPostgresRepository(logger *logging.Logger, db *postgres.Client) *Repository {
+func NewPostgresRepository(logger *logging.Logger, db *postgres.Client) Repository {
 	var authRepo Repository = &PostgresRepository{
 		db:     db,
 		logger: logger,
 	}
 	logger.Info("Make new db.")
-	return &authRepo
+	return authRepo
 }
 
-func (r *PostgresRepository) Create() error {
-	r.logger.Info("Method of create yoba")
-	return nil
+func (r *PostgresRepository) CreateUser(u *User) (int64, error) {
+	var id int64
+	err := r.db.QueryRowx("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id", u.Email, u.PasswordHash).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }

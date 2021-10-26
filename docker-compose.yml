@@ -21,7 +21,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - postgres_volume
+      - postgres_volume:/var/lib/postgresql/data
 
   migration:
     depends_on:
